@@ -56,6 +56,9 @@ int main()
     showMyImage(imBig, result, index);
 
     // 3.
+    merge(vector<Mat>{b, g, r}, result);
+    showMyImage(imBig, result, index);
+
     merge(vector<Mat>{b, r, g}, result);
     showMyImage(imBig, result, index);
 
@@ -100,6 +103,18 @@ int main()
     // 6.
     result = ~im;
     showMyImage(imBig, result, index);
+
+    Mat a = imread("plafon.jpg");
+
+    Mat gray;
+    cvtColor(a, gray, COLOR_BGR2GRAY);
+    Mat monochrome;
+    cvtColor(gray, monochrome, COLOR_GRAY2BGR);
+
+    imshow("Ablak", gray);
+    waitKey();
+    imshow("Asblak", monochrome);
+    waitKey();
 
     return 0;
 }
