@@ -1,3 +1,6 @@
 {
-  "cmake.sourceDirectory": "/home/progenor/Documents/code/Sch/Image/Lab3"
+  "cmake.sourceDirectory": "/home/progenor/Documents/code/Sch/Image/Lab3",
+  "files.associations": {
+    "main.C": "cpp"
+  }
 }
