@@ -2,74 +2,149 @@
 using namespace cv;
 using namespace std;
 
-int main()
+// Helper: try multiple likely paths/extensions to load an image from the workspace
+static Mat loadImage(const string &filename)
 {
-    Mat img = imread("esik.jpg", IMREAD_GRAYSCALE);
-    if (img.empty())
+    Mat im = imread(filename);
+    if (!im.empty())
+        return im;
+    size_t pos = filename.find_last_of('.');
+    if (pos != string::npos)
     {
-        cout << "Image not found!" << endl;
-        return -1;
+        string base = filename.substr(0, pos);
+        string ext = filename.substr(pos);
+        if (ext == ".jpg")
+            im = imread(base + ".JPG");
+        else if (ext == ".JPG")
+            im = imread(base + ".jpg");
+        if (!im.empty())
+            return im;
+    }
+    vector<string> prefixes = {"kepek/", "../kepek/", "/home/progenor/Documents/code/Sch/Image/kepek/"};
+    for (const auto &p : prefixes)
+    {
+        im = imread(p + filename);
+        if (!im.empty())
+            return im;
+        if (pos != string::npos)
+        {
+            string base = filename.substr(0, pos);
+            string ext = filename.substr(pos);
+            if (ext == ".jpg")
+                im = imread(p + base + ".JPG");
+            else if (ext == ".JPG")
+                im = imread(p + base + ".jpg");
+            if (!im.empty())
+                return im;
+        }
+    }
+    return Mat();
+}
+
+// Equalize image in Y channel (works for color and grayscale)
+static void equalizeHistogram(Mat &im)
+{
+    if (im.empty())
+        return;
+    if (im.channels() == 1)
+    {
+        equalizeHist(im, im);
+        return;
+    }
+    Mat ycrcb;
+    cvtColor(im, ycrcb, COLOR_BGR2YCrCb);
+    vector<Mat> channels;
+    split(ycrcb, channels);
+    equalizeHist(channels[0], channels[0]);
+    merge(channels, ycrcb);
+    cvtColor(ycrcb, im, COLOR_YCrCb2BGR);
+}
+
+static Mat drawColorHistImage(const Mat &image)
+{
+    vector<Mat> bgr_planes;
+    split(image, bgr_planes);
+
+    int histSize = 256;
+    float range[] = {0, 256};
+    const float *histRange = {range};
+    bool uniform = true, accumulate = false;
+
+    vector<Mat> hists(3);
+    for (int i = 0; i < 3; ++i)
+    {
+        calcHist(&bgr_planes[i], 1, nullptr, Mat(), hists[i], 1, &histSize, &histRange, uniform, accumulate);
+        normalize(hists[i], hists[i], 0, 100, NORM_MINMAX);
     }
 
-    float data1[9] = {-1, 0, 1, -1, 0, 1, -1, 0, 1};
-    float data2[9] = {1, 0, -1, 1, 0, -1, 1, 0, -1};
-    float data3[9] = {-1, -1, -1, 0, 0, 0, 1, 1, 1};
-    float data4[9] = {1, 1, 1, 0, 0, 0, -1, -1, -1};
-
-    Mat k1(3, 3, CV_32F, data1), k2(3, 3, CV_32F, data2), k3(3, 3, CV_32F, data3), k4(3, 3, CV_32F, data4);
-    Mat g1, g2, g3, g4;
-    filter2D(img, g1, -1, k1);
-    filter2D(img, g2, -1, k2);
-    filter2D(img, g3, -1, k3);
-    filter2D(img, g4, -1, k4);
-
-    Mat vert = g1 + g2;
-    Mat hori = g3 + g4;
-    Mat all = vert + hori;
-    Mat thin;
-    threshold(all, thin, 110, 255, THRESH_BINARY);
-    Mat canny;
-    Canny(img, canny, 100, 200);
-
-    vector<Mat> imgs = {img, g1, g2, g3, g4, vert, hori, all, thin, canny};
-    for (auto &m : imgs)
-        if (m.type() != CV_8U)
-            normalize(m, m, 0, 255, NORM_MINMAX, CV_8U);
-
-    int w = img.cols, h = img.rows;
-    Mat grid(h * 3, w * 3, CV_8U, Scalar(0));
-
-    imgs[0].copyTo(grid(Rect(0, 0, w, h)));
-    imgs[1].copyTo(grid(Rect(w, 0, w, h)));
-    imgs[2].copyTo(grid(Rect(2 * w, 0, w, h)));
-    imgs[3].copyTo(grid(Rect(0, h, w, h)));
-    imgs[4].copyTo(grid(Rect(w, h, w, h)));
-    imgs[5].copyTo(grid(Rect(2 * w, h, w, h)));
-    imgs[6].copyTo(grid(Rect(0, 2 * h, w, h)));
-    imgs[7].copyTo(grid(Rect(w, 2 * h, w, h)));
-    imgs[8].copyTo(grid(Rect(2 * w, 2 * h, w, h)));
-
-    putText(grid, "1", Point(10, 30), FONT_HERSHEY_SIMPLEX, 1, 255, 2);
-    putText(grid, "2", Point(w + 10, 30), FONT_HERSHEY_SIMPLEX, 1, 255, 2);
-    putText(grid, "2", Point(2 * w + 10, 30), FONT_HERSHEY_SIMPLEX, 1, 255, 2);
-    putText(grid, "2", Point(10, h + 30), FONT_HERSHEY_SIMPLEX, 1, 255, 2);
-    putText(grid, "2", Point(w + 10, h + 30), FONT_HERSHEY_SIMPLEX, 1, 255, 2);
-    putText(grid, "2", Point(2 * w + 10, h + 30), FONT_HERSHEY_SIMPLEX, 1, 255, 2);
-    putText(grid, "2", Point(10, 2 * h + 30), FONT_HERSHEY_SIMPLEX, 1, 255, 2);
-    putText(grid, "2", Point(w + 10, 2 * h + 30), FONT_HERSHEY_SIMPLEX, 1, 255, 2);
-    putText(grid, "2", Point(2 * w + 10, 2 * h + 30), FONT_HERSHEY_SIMPLEX, 1, 255, 2);
-
-    imshow("All Results Grid", grid);
-    imshow("3", imgs[9]);
-
-    int key;
-    while (true)
+    Mat histImage(300, 256, CV_8UC3, Scalar(255, 255, 255));
+    vector<Scalar> colors = {Scalar(255, 0, 0), Scalar(0, 255, 0), Scalar(0, 0, 255)};
+    for (int ch = 0; ch < 3; ++ch)
     {
-        key = waitKey(0);
-        if (key == 27 || key == 'q' || key == 'Q')
-            break;
-        if (key == 91 || key == 92)
+        rectangle(histImage, Rect(0, ch * 100, 256, 100), colors[ch], -1);
+        for (int i = 0; i < 256; ++i)
+        {
+            line(histImage,
+                 Point(i, (ch + 1) * 100),
+                 Point(i, (ch + 1) * 100 - cvRound(hists[ch].at<float>(i))),
+                 Scalar(0, 0, 0), 1);
+        }
+    }
+    return histImage;
+}
+
+int main()
+{
+    vector<string> imageFiles = {"cheguevara.jpg", "japan.jpg", "muzeum.jpg", "oroszlan.jpg"};
+
+    for (const auto &imageFile : imageFiles)
+    {
+        Mat im = loadImage(imageFile);
+        if (im.empty())
+        {
+            cerr << "Hiba: Nem találom a " << imageFile << " fájlt!" << endl;
             continue;
+        }
+
+        // Original image histogram (colored)
+        Mat origHistDisplay = drawColorHistImage(im);
+
+        // Histogram equalization
+        Mat imEqualized = im.clone();
+        equalizeHistogram(imEqualized);
+
+        // Equalized histogram (colored)
+        Mat eqHistDisplay = drawColorHistImage(imEqualized);
+
+        // Create image display
+        Mat imageDisplay(im.rows, im.cols * 2, im.type());
+        im.copyTo(imageDisplay(Rect(0, 0, im.cols, im.rows)));
+        imEqualized.copyTo(imageDisplay(Rect(im.cols, 0, im.cols, im.rows)));
+
+        // Create histogram display
+        Mat histDisplay(300, 256 * 2, CV_8UC3, Scalar(255, 255, 255));
+        origHistDisplay.copyTo(histDisplay(Rect(0, 0, 256, 300)));
+        eqHistDisplay.copyTo(histDisplay(Rect(256, 0, 256, 300)));
+
+        // Add labels to images
+        putText(imageDisplay, "Eredeti kep", Point(10, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+        putText(imageDisplay, "Kiegyenlitett kep", Point(im.cols + 10, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+
+        putText(histDisplay, "Eredeti hiszt.", Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(0, 0, 0), 2);
+        putText(histDisplay, "Kiegy. hiszt.", Point(256 + 10, 30), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(0, 0, 0), 2);
+
+        imshow("Kepek", imageDisplay);
+        imshow("Hisztogramok", histDisplay);
+
+        // Wait for 'q' or 'Q' to go to next image, ESC to quit all
+        while (true)
+        {
+            int key = waitKey(0);
+            if (key == 'q' || key == 'Q')
+                break;
+            if (key == 27) // ESC
+                return 0;
+        }
     }
     return 0;
 }
