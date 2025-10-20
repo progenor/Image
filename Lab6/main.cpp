@@ -2,149 +2,180 @@
 using namespace cv;
 using namespace std;
 
-// Helper: try multiple likely paths/extensions to load an image from the workspace
-static Mat loadImage(const string &filename)
+// Helper: show and wait for q/Q/ESC
+bool showAndWait(const string &win, const Mat &img)
 {
-    Mat im = imread(filename);
-    if (!im.empty())
-        return im;
-    size_t pos = filename.find_last_of('.');
-    if (pos != string::npos)
+    imshow(win, img);
+    while (true)
     {
-        string base = filename.substr(0, pos);
-        string ext = filename.substr(pos);
-        if (ext == ".jpg")
-            im = imread(base + ".JPG");
-        else if (ext == ".JPG")
-            im = imread(base + ".jpg");
-        if (!im.empty())
-            return im;
+        int key = waitKey(0);
+        if (key == 'q' || key == 'Q')
+            break;
+        if (key == 27)
+            return false;
     }
-    vector<string> prefixes = {"kepek/", "../kepek/", "/home/progenor/Documents/code/Sch/Image/kepek/"};
-    for (const auto &p : prefixes)
-    {
-        im = imread(p + filename);
-        if (!im.empty())
-            return im;
-        if (pos != string::npos)
-        {
-            string base = filename.substr(0, pos);
-            string ext = filename.substr(pos);
-            if (ext == ".jpg")
-                im = imread(p + base + ".JPG");
-            else if (ext == ".JPG")
-                im = imread(p + base + ".jpg");
-            if (!im.empty())
-                return im;
-        }
-    }
-    return Mat();
-}
-
-// Equalize image in Y channel (works for color and grayscale)
-static void equalizeHistogram(Mat &im)
-{
-    if (im.empty())
-        return;
-    if (im.channels() == 1)
-    {
-        equalizeHist(im, im);
-        return;
-    }
-    Mat ycrcb;
-    cvtColor(im, ycrcb, COLOR_BGR2YCrCb);
-    vector<Mat> channels;
-    split(ycrcb, channels);
-    equalizeHist(channels[0], channels[0]);
-    merge(channels, ycrcb);
-    cvtColor(ycrcb, im, COLOR_YCrCb2BGR);
-}
-
-static Mat drawColorHistImage(const Mat &image)
-{
-    vector<Mat> bgr_planes;
-    split(image, bgr_planes);
-
-    int histSize = 256;
-    float range[] = {0, 256};
-    const float *histRange = {range};
-    bool uniform = true, accumulate = false;
-
-    vector<Mat> hists(3);
-    for (int i = 0; i < 3; ++i)
-    {
-        calcHist(&bgr_planes[i], 1, nullptr, Mat(), hists[i], 1, &histSize, &histRange, uniform, accumulate);
-        normalize(hists[i], hists[i], 0, 100, NORM_MINMAX);
-    }
-
-    Mat histImage(300, 256, CV_8UC3, Scalar(255, 255, 255));
-    vector<Scalar> colors = {Scalar(255, 0, 0), Scalar(0, 255, 0), Scalar(0, 0, 255)};
-    for (int ch = 0; ch < 3; ++ch)
-    {
-        rectangle(histImage, Rect(0, ch * 100, 256, 100), colors[ch], -1);
-        for (int i = 0; i < 256; ++i)
-        {
-            line(histImage,
-                 Point(i, (ch + 1) * 100),
-                 Point(i, (ch + 1) * 100 - cvRound(hists[ch].at<float>(i))),
-                 Scalar(0, 0, 0), 1);
-        }
-    }
-    return histImage;
+    destroyWindow(win);
+    return true;
 }
 
 int main()
 {
-    vector<string> imageFiles = {"cheguevara.jpg", "japan.jpg", "muzeum.jpg", "oroszlan.jpg"};
-
-    for (const auto &imageFile : imageFiles)
+    // --- A. Feladat ---
+    Mat bin = imread("pityoka.png", IMREAD_GRAYSCALE);
+    if (bin.empty())
     {
-        Mat im = loadImage(imageFile);
-        if (im.empty())
-        {
-            cerr << "Hiba: Nem találom a " << imageFile << " fájlt!" << endl;
-            continue;
-        }
-
-        // Original image histogram (colored)
-        Mat origHistDisplay = drawColorHistImage(im);
-
-        // Histogram equalization
-        Mat imEqualized = im.clone();
-        equalizeHistogram(imEqualized);
-
-        // Equalized histogram (colored)
-        Mat eqHistDisplay = drawColorHistImage(imEqualized);
-
-        // Create image display
-        Mat imageDisplay(im.rows, im.cols * 2, im.type());
-        im.copyTo(imageDisplay(Rect(0, 0, im.cols, im.rows)));
-        imEqualized.copyTo(imageDisplay(Rect(im.cols, 0, im.cols, im.rows)));
-
-        // Create histogram display
-        Mat histDisplay(300, 256 * 2, CV_8UC3, Scalar(255, 255, 255));
-        origHistDisplay.copyTo(histDisplay(Rect(0, 0, 256, 300)));
-        eqHistDisplay.copyTo(histDisplay(Rect(256, 0, 256, 300)));
-
-        // Add labels to images
-        putText(imageDisplay, "Eredeti kep", Point(10, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
-        putText(imageDisplay, "Kiegyenlitett kep", Point(im.cols + 10, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
-
-        putText(histDisplay, "Eredeti hiszt.", Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(0, 0, 0), 2);
-        putText(histDisplay, "Kiegy. hiszt.", Point(256 + 10, 30), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(0, 0, 0), 2);
-
-        imshow("Kepek", imageDisplay);
-        imshow("Hisztogramok", histDisplay);
-
-        // Wait for 'q' or 'Q' to go to next image, ESC to quit all
-        while (true)
-        {
-            int key = waitKey(0);
-            if (key == 'q' || key == 'Q')
-                break;
-            if (key == 27) // ESC
-                return 0;
-        }
+        cerr << "Nem találom a pityoka.png képet!" << endl;
+        return 1;
     }
+    threshold(bin, bin, 128, 255, THRESH_BINARY);
+
+    Mat eroded, dilated, open, close;
+    Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));
+
+    // 10x erode, then 10x dilate (opening)
+    eroded = bin.clone();
+    for (int i = 0; i < 10; ++i)
+        erode(eroded, eroded, element);
+    dilated = eroded.clone();
+    for (int i = 0; i < 10; ++i)
+        dilate(dilated, dilated, element);
+    Mat openResult = dilated;
+    if (!showAndWait("A: 10x erode, 10x dilate (Opening)", openResult))
+        return 0;
+
+    // 10x dilate, then 10x erode (closing)
+    dilated = bin.clone();
+    for (int i = 0; i < 10; ++i)
+        dilate(dilated, dilated, element);
+    eroded = dilated.clone();
+    for (int i = 0; i < 10; ++i)
+        erode(eroded, eroded, element);
+    Mat closeResult = eroded;
+    if (!showAndWait("A: 10x dilate, 10x erode (Closing)", closeResult))
+        return 0;
+
+    // --- B. Feladat ---
+    for (int r = 1; r <= 11; r += 2)
+    {
+        Mat ell = getStructuringElement(MORPH_ELLIPSE, Size(r, r));
+        Mat er, di;
+        erode(bin, er, ell);
+        dilate(bin, di, ell);
+        Mat grid(bin.rows, bin.cols * 2, bin.type());
+        er.copyTo(grid(Rect(0, 0, bin.cols, bin.rows)));
+        di.copyTo(grid(Rect(bin.cols, 0, bin.cols, bin.rows)));
+        putText(grid, "Erode r=" + to_string(r), Point(10, 30), FONT_HERSHEY_SIMPLEX, 1, 255, 2);
+        putText(grid, "Dilate r=" + to_string(r), Point(bin.cols + 10, 30), FONT_HERSHEY_SIMPLEX, 1, 255, 2);
+        if (!showAndWait("B: Erode/Dilate ellipse r=" + to_string(r), grid))
+            return 0;
+    }
+
+    // --- C. Feladat ---
+    Mat color = imread("bond.jpg");
+    if (color.empty())
+    {
+        cerr << "Nem találom a bond.jpg képet!" << endl;
+        return 1;
+    }
+    Mat scribble_black = color.clone();
+    line(scribble_black, Point(20, 20), Point(200, 200), Scalar(0, 0, 0), 10);
+    line(scribble_black, Point(100, 50), Point(300, 250), Scalar(0, 0, 0), 8);
+    line(scribble_black, Point(50, 250), Point(250, 50), Scalar(0, 0, 0), 6);
+
+    for (int r = 3; r <= 21; r += 6)
+    {
+        Mat elem = getStructuringElement(MORPH_RECT, Size(r, r));
+        Mat dil;
+        dilate(scribble_black, dil, elem);
+        Mat grid(color.rows, color.cols * 2, color.type());
+        scribble_black.copyTo(grid(Rect(0, 0, color.cols, color.rows)));
+        dil.copyTo(grid(Rect(color.cols, 0, color.cols, color.rows)));
+        putText(grid, "Original (black lines)", Point(10, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 255, 255), 2);
+        putText(grid, "Dilated r=" + to_string(r), Point(color.cols + 10, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 255, 255), 2);
+        if (!showAndWait("C: Dilate black lines r=" + to_string(r), grid))
+            return 0;
+    }
+
+    Mat scribble_white = color.clone();
+    line(scribble_white, Point(20, 20), Point(200, 200), Scalar(255, 255, 255), 10);
+    line(scribble_white, Point(100, 50), Point(300, 250), Scalar(255, 255, 255), 8);
+    line(scribble_white, Point(50, 250), Point(250, 50), Scalar(255, 255, 255), 6);
+
+    for (int r = 3; r <= 21; r += 6)
+    {
+        Mat elem = getStructuringElement(MORPH_RECT, Size(r, r));
+        Mat ero;
+        erode(scribble_white, ero, elem);
+        Mat grid(color.rows, color.cols * 2, color.type());
+        scribble_white.copyTo(grid(Rect(0, 0, color.cols, color.rows)));
+        ero.copyTo(grid(Rect(color.cols, 0, color.cols, color.rows)));
+        putText(grid, "Original (white lines)", Point(10, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 2);
+        putText(grid, "Eroded r=" + to_string(r), Point(color.cols + 10, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 2);
+        if (!showAndWait("C: Erode white lines r=" + to_string(r), grid))
+            return 0;
+    }
+
+    // --- D. Feladat ---
+    for (int r = 3; r <= 21; r += 6)
+    {
+        Mat elem = getStructuringElement(MORPH_RECT, Size(r, r));
+        Mat grad;
+        morphologyEx(color, grad, MORPH_GRADIENT, elem);
+        Mat grid(color.rows, color.cols * 2, color.type());
+        color.copyTo(grid(Rect(0, 0, color.cols, color.rows)));
+        grad.copyTo(grid(Rect(color.cols, 0, color.cols, color.rows)));
+        putText(grid, "Original", Point(10, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+        putText(grid, "Gradient r=" + to_string(r), Point(color.cols + 10, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+        if (!showAndWait("D: Morph gradient r=" + to_string(r), grid))
+            return 0;
+    }
+
+    // --- E. Feladat ---
+    Mat kukac = imread("kukac.png", IMREAD_GRAYSCALE);
+    if (kukac.empty())
+    {
+        cerr << "Nem találom a kukac.png képet!" << endl;
+        return 1;
+    }
+    Mat imH(kukac.size(), CV_8UC1);
+    for (int x = 0; x < imH.cols; ++x)
+        imH(Rect(x, 0, 1, imH.rows)).setTo(Scalar(x * 256 / imH.cols));
+
+    // TopHat: kukacok világosabbak a háttérnél
+    Mat inputTopHat;
+    addWeighted(imH, 0.9, kukac, 0.1, 0, inputTopHat);
+
+    for (int r = 3; r <= 21; r += 6)
+    {
+        Mat elem = getStructuringElement(MORPH_RECT, Size(r, r));
+        Mat tophat;
+        morphologyEx(inputTopHat, tophat, MORPH_TOPHAT, elem);
+        Mat grid(kukac.rows, kukac.cols * 2, kukac.type());
+        inputTopHat.copyTo(grid(Rect(0, 0, kukac.cols, kukac.rows)));
+        tophat.copyTo(grid(Rect(kukac.cols, 0, kukac.cols, kukac.rows)));
+        putText(grid, "Input TopHat", Point(10, 30), FONT_HERSHEY_SIMPLEX, 1, 255, 2);
+        putText(grid, "TopHat r=" + to_string(r), Point(kukac.cols + 10, 30), FONT_HERSHEY_SIMPLEX, 1, 255, 2);
+        if (!showAndWait("E: TopHat r=" + to_string(r), grid))
+            return 0;
+    }
+
+    // BlackHat: kukacok sötétebbek a háttérnél
+    Mat inputBlackHat;
+    addWeighted(imH, 0.9, kukac, -0.1, 25, inputBlackHat);
+
+    for (int r = 3; r <= 21; r += 6)
+    {
+        Mat elem = getStructuringElement(MORPH_RECT, Size(r, r));
+        Mat blackhat;
+        morphologyEx(inputBlackHat, blackhat, MORPH_BLACKHAT, elem);
+        Mat grid(kukac.rows, kukac.cols * 2, kukac.type());
+        inputBlackHat.copyTo(grid(Rect(0, 0, kukac.cols, kukac.rows)));
+        blackhat.copyTo(grid(Rect(kukac.cols, 0, kukac.cols, kukac.rows)));
+        putText(grid, "Input BlackHat", Point(10, 30), FONT_HERSHEY_SIMPLEX, 1, 255, 2);
+        putText(grid, "BlackHat r=" + to_string(r), Point(kukac.cols + 10, 30), FONT_HERSHEY_SIMPLEX, 1, 255, 2);
+        if (!showAndWait("E: BlackHat r=" + to_string(r), grid))
+            return 0;
+    }
+
     return 0;
 }

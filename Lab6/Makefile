@@ -57,10 +57,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/progenor/Documents/code/Sch/Image/Lab5
+CMAKE_SOURCE_DIR = /home/progenor/Documents/code/Sch/Image/Lab6
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/progenor/Documents/code/Sch/Image/Lab5
+CMAKE_BINARY_DIR = /home/progenor/Documents/code/Sch/Image/Lab6
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -87,9 +87,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/progenor/Documents/code/Sch/Image/Lab5/CMakeFiles /home/progenor/Documents/code/Sch/Image/Lab5//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/progenor/Documents/code/Sch/Image/Lab6/CMakeFiles /home/progenor/Documents/code/Sch/Image/Lab6//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/progenor/Documents/code/Sch/Image/Lab5/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/progenor/Documents/code/Sch/Image/Lab6/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -117,24 +117,24 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named Lab5
+# Target rules for targets named Lab6
 
 # Build rule for target.
-Lab5: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 Lab5
-.PHONY : Lab5
+Lab6: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 Lab6
+.PHONY : Lab6
 
 # fast build rule for target.
-Lab5/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Lab5.dir/build.make CMakeFiles/Lab5.dir/build
-.PHONY : Lab5/fast
+Lab6/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Lab6.dir/build.make CMakeFiles/Lab6.dir/build
+.PHONY : Lab6/fast
 
 main.o: main.cpp.o
 .PHONY : main.o
 
 # target to build an object file
 main.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Lab5.dir/build.make CMakeFiles/Lab5.dir/main.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Lab6.dir/build.make CMakeFiles/Lab6.dir/main.cpp.o
 .PHONY : main.cpp.o
 
 main.i: main.cpp.i
@@ -142,7 +142,7 @@ main.i: main.cpp.i
 
 # target to preprocess a source file
 main.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Lab5.dir/build.make CMakeFiles/Lab5.dir/main.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Lab6.dir/build.make CMakeFiles/Lab6.dir/main.cpp.i
 .PHONY : main.cpp.i
 
 main.s: main.cpp.s
@@ -150,7 +150,7 @@ main.s: main.cpp.s
 
 # target to generate assembly for a file
 main.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Lab5.dir/build.make CMakeFiles/Lab5.dir/main.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Lab6.dir/build.make CMakeFiles/Lab6.dir/main.cpp.s
 .PHONY : main.cpp.s
 
 # Help Target
@@ -161,7 +161,7 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... Lab5"
+	@echo "... Lab6"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
